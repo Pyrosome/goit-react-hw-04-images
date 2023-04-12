@@ -1,0 +1,274 @@
+export class Searchbar extends Component {
+    state = {
+        value: '',
+    }
+
+    handleChange = ({ target: { value } }) => {
+        this.setState({value})
+    }
+        
+    handleSubmit = (evt) => {
+        const { value } = this.state;
+        evt.preventDefault();
+        if (!value) {
+           return toast.error('Please type in your request.')
+        }
+        this.props.onSearch(value);
+        this.setState({value: ''})
+    }
+
+
+//////////
+
+export class App extends Component {
+  state = {
+    searchInput: '',
+    page: 1
+  }
+
+  handleSubmit = (searchInput) => {
+    this.setState({ searchInput, page: 1 })
+  }
+
+  handleLoad = () => {
+      this.setState((prevState) => ({page: prevState.page+1}))
+    }
+
+  render() {
+    const { searchInput, page } = this.state;
+
+    return (
+      <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gridGap: '16px',
+        paddingBottom: '24px',
+      }}
+      >
+        <Toaster position="top-right" toastOptions={{ duration: 1500, style: { gap: '10px'}}}/>
+        <Searchbar onSearch={this.handleSubmit}/>
+        <ImageGallery input={searchInput} page={page} onLoad={this.handleLoad} />
+        
+        
+      </div>
+    );
+  };
+}
+
+///////////
+
+export class ImageGallery extends Component {
+
+    state = {
+        images: [],
+        loading: false,
+        button: false,
+        openModal: false,
+        largeImg: ''
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        const { input } = this.props;
+        const { page } = this.props;
+
+        if (prevProps.input !== input) {
+            this.setState({ images: []})
+        }
+
+        if (
+            prevProps.input !== input ||
+            prevProps.page !== page
+        ) {
+            this.setState({ loading: true });
+
+            getImg(input.trim(), page)
+                .then(response => {
+                    return response.json();
+                }).then((images) => {
+                    if (images.total===0) {
+                        return toast.error('There was no images found on your request.')
+                    } else {    
+                        this.setState({
+                            images: [...this.state.images, ...images.hits], 
+                            button: page < Math.ceil(images.totalHits / 12),
+                        })
+                        if (page===1) {
+                            return toast.success(`${images.totalHits} images found!`)
+                        }
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                    return toast.error('Something went wrong. Please try again.')
+                })
+                .finally(() => {
+                    this.setState({ loading: false });  
+                })
+                
+        }
+    }
+
+    handleLoad = () => {
+        this.props.onLoad()
+    }
+
+    onClickImg = e => {
+        console.log(e.target.name);
+        this.setState({
+            largeImg: e.target.name,
+            openModal: true,
+        });
+    };
+
+     closeModal = () => {
+       this.setState({
+         openModal: false,
+       });
+     };
+
+    render() {
+        const { images, loading, largeImg } = this.state;
+        const { page} = this.props;
+        return (
+            <div>
+                {loading && page===1 && <Loader/> } 
+                <GalleryUl>
+                    {images &&
+                        images.map(({ id, webformatURL, tags, largeImageURL } ) => {
+                            return <ImageGalleryItem key={id} src={webformatURL} alt={tags} name={largeImageURL} onClick={this.onClickImg} />
+                    })}
+                </GalleryUl>
+                {this.state.button && <Button onClick={this.handleLoad} />}
+                {this.state.openModal && <Modal selectedImage={largeImg} onClose={this.closeModal} />}
+            </div>
+        )
+    }
+}
+
+///////////
+
+    componentDidUpdate(prevProps, prevState) {
+        const { input, page } = props;
+
+        if (prevProps.input !== input) {
+            setImages([])
+        }
+
+        if (
+            prevProps.input !== input ||
+            prevProps.page !== page
+        ) {
+            setLoading(true);
+
+            getImg(input.trim(), page)
+                .then(response => {
+                    return response.json();
+                }).then((images) => {
+                    if (images.total === 0) {
+                        return toast.error('There was no images found on your request.')
+                    } else {
+                        setImages([...state.images, ...images.hits])
+                        setButton(page < Math.ceil(images.totalHits / 12))
+                    }
+                    
+                    if (page === 1) {
+                        return toast.success(`${images.totalHits} images found!`)
+                    }
+                }
+                ).catch((error) => {
+                    console.log(error);
+                    return toast.error('Something went wrong. Please try again.')
+                })
+                .finally(() => {
+                    setLoading(false);
+                })
+                
+        }
+    }
+
+    /////
+
+ import { useState, useEffect } from "react"
+import toast from 'react-hot-toast';
+import { getImg } from "components/APIservice"
+import { ImageGalleryItem } from "../ImageGalleryItem/ImageGalleryItem";
+import { GalleryUl } from './ImageGallery.styled';
+import { Loader } from "components/Loader/Loader";
+import { Button } from "components/Button/Button";
+import { Modal } from "components/Modal/Modal";
+
+
+export const ImageGallery = (input, page, onLoad) => {
+
+    const [images, setImages] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [button, setButton] = useState(false);
+    const [openModal, setOpenModal] = useState(false);
+    const [largeImg, setLargeImg] = useState('');
+
+
+    useEffect(() => {
+        setImages([])
+    }, [input])
+
+    useEffect(() => {
+        
+        if (input === []) {
+            return;
+        }
+            setLoading(true);
+
+            getImg(input, page)
+                .then(response => {
+                    return response.json();
+                }).then((images) => {
+                    if (images.total === 0) {
+                        return toast.error('There was no images found on your request.')
+                    } else {
+                        setImages(prevState => ([...prevState, ...images.hits]))
+                        setButton(page < Math.ceil(images.totalHits / 12))
+                    }
+                    if (page === 1) {
+                        return toast.success(`${images.totalHits} images found!`)
+                    }
+                    
+                }
+                ).catch((error) => {
+                    console.log(error);
+                    return toast.error('Something went wrong. Please try again.')
+                })
+                .finally(() => {
+                    setLoading(false);
+                })
+    }, [input, page])
+
+    const handleLoad = () => {
+            onLoad()
+    }
+
+    const onClickImg = e => {
+        setLargeImg(e.target.name)
+        setOpenModal(true)
+    };
+
+    const closeModal = () => {
+        setOpenModal(false);
+    };
+
+    console.log(images);
+    return (
+        <div>
+            {loading && page === 1 && <Loader />}
+            <GalleryUl>
+                {images.length !== 0 &&
+                    images.map(({ id, webformatURL, tags, largeImageURL }) => {
+                        return <ImageGalleryItem key={id} src={webformatURL} alt={tags} name={largeImageURL} onClick={onClickImg} />
+                    })
+                }
+            </GalleryUl>
+            {button && <Button onClick={handleLoad} />}
+            {openModal && <Modal selectedImage={largeImg} onClose={closeModal} />}
+        </div>
+    )
+}
+

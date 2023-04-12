@@ -1,4 +1,4 @@
-import { Component } from "react"
+  import { useState } from "react"
 import toast from 'react-hot-toast';
 import {
   SearchbarHeader,
@@ -9,28 +9,24 @@ import {
 import { HiArrowRight } from 'react-icons/hi2';
 
 
-export class Searchbar extends Component {
-    state = {
-        value: '',
-    }
+export const Searchbar = ({onSearch}) =>  {
+    const [value, setValue] = useState('');
 
-    handleChange = ({ target: { value } }) => {
-        this.setState({value})
+    const handleChange = ({ target: { value } }) => {
+        setValue(value)
     }
         
-    handleSubmit = (evt) => {
-        const { value } = this.state;
+    const handleSubmit = (evt) => {
         evt.preventDefault();
         if (!value) {
            return toast.error('Please type in your request.')
         }
-        this.props.onSearch(value);
-        this.setState({value: ''})
+        onSearch(value);
+        setValue('')
     }
 
-    render() {
-        return (
-       <SearchbarHeader onSubmit={this.handleSubmit}>
+      return (
+       <SearchbarHeader onSubmit={handleSubmit}>
         <SearchForm>
           <SearchFormButton type="submit">
             <HiArrowRight />
@@ -41,11 +37,10 @@ export class Searchbar extends Component {
             autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
-            value={this.state.value}
-            onChange={this.handleChange}
+            value={value}
+            onChange={handleChange}
           />
         </SearchForm>
       </SearchbarHeader>
         )
     }
-}
